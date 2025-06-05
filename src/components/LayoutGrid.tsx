@@ -1,5 +1,5 @@
 import { useRef, type ChangeEvent } from "react";
-import { PiHandTap } from "react-icons/pi";
+import { BiSolidImageAdd } from "react-icons/bi";
 
 interface LayoutGridProps {
   position: { row: number; col: number };
@@ -24,7 +24,7 @@ const LayoutGrid = ({ onUpload, className, content }: LayoutGridProps) => {
       {content ? (
         <img src={content} className="w-full h-full object-cover" />
       ) : (
-        <PiHandTap className="w-full portrait:h-10 landscape:h-5 text-amber-600 animate-pulse" />
+        <BiSolidImageAdd className="w-full portrait:h-10 landscape:h-5 text-amber-600 animate-pulse" />
       )}
       <input
         ref={(el) => {

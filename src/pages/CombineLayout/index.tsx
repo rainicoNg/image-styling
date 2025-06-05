@@ -3,7 +3,7 @@ import { HiDocumentDownload } from "react-icons/hi";
 import ActionButton from "@/components/ActionButton";
 import GridLayoutButton from "@/components/GridLayoutButton";
 import LayoutGrid from "@/components/LayoutGrid";
-import { getAspectRatio } from "@/utils/helper";
+import { getAspectRatio, getGridCols } from "@/utils/helper";
 import { type ChangeEvent, useCallback, useMemo, useState } from "react";
 import { gridLayoutOptions } from "./constants";
 
@@ -82,10 +82,6 @@ const CombineLayout = () => {
         srcY = (img.height - srcHeight) / 2;
       }
 
-      const r = Math.floor(Math.random() * 9);
-      console.log("los r", r);
-      ctx.fillStyle = `#${r}ff`;
-      ctx.fillRect(x, y, targetWidth, targetHeight);
       ctx.drawImage(
         img,
         srcX,
@@ -103,7 +99,6 @@ const CombineLayout = () => {
       for (let row = 0; row < layout.row; row++) {
         for (let col = 0; col < layout.col; col++) {
           const imgSrc = selectedImgs[row][col];
-
           if (imgSrc) {
             await loadImg(imgSrc).then((img) => {
               cropAndDrawImage(
@@ -145,9 +140,9 @@ const CombineLayout = () => {
   );
 
   const LayoutGridBox = () => {
-    const gridStyle = `grid grid-cols-${
+    const gridStyle = `grid ${getGridCols(
       layout.col
-    } gap-px aspect-${getAspectRatio(
+    )} gap-px aspect-${getAspectRatio(
       finalImageSize.width,
       finalImageSize.height
     )} portrait:w-full landscape:h-4/5`;
