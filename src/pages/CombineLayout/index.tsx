@@ -201,7 +201,9 @@ const CombineLayout = () => {
             <ActionButton
               variant="negative"
               disabled={!selectedImgs.flat().some((img) => img)}
-              onClick={handleResetSelectedImgs}
+              onClick={() => {
+                handleResetSelectedImgs();
+              }}
               label="Reset"
               startAddon={<MdOutlineDelete />}
             />
