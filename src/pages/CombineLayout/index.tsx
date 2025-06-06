@@ -4,7 +4,7 @@ import ActionButton from "@/components/ActionButton";
 import GridLayoutButton from "@/components/GridLayoutButton";
 import LayoutGrid from "@/components/LayoutGrid";
 import { getAspectRatio, getGridCols } from "@/utils/helper";
-import { type ChangeEvent, useCallback, useMemo, useState } from "react";
+import { type ChangeEvent, useMemo, useState } from "react";
 import { gridLayoutOptions } from "./constants";
 
 const CombineLayout = () => {
@@ -15,16 +15,17 @@ const CombineLayout = () => {
     width: 2268,
     height: 4032,
   });
-  const [layout, setLayout] = useState<{ row: number; col: number }>(
-    gridLayoutOptions[0]
-  );
+  const [layout, setLayout] = useState<{
+    row: number;
+    col: number;
+    aspectRatioClass: string;
+  }>(gridLayoutOptions[0]);
   const [selectedImgs, setSelectedImgs] = useState<string[][]>(
     Array.from({ length: layout.row }, () => Array(layout.col).fill(""))
   );
 
   const handleImageUpload =
     (row: number, col: number) => (event: ChangeEvent<HTMLInputElement>) => {
-      console.log("logs event", event.target.files?.[0]);
       const img = event.target.files?.[0];
       if (img && img.type.startsWith("image/")) {
         const reader = new FileReader();
@@ -130,15 +131,6 @@ const CombineLayout = () => {
     }
   };
 
-  const gridAspectRatio = useCallback(
-    () =>
-      getAspectRatio(
-        finalImageSize.width / layout.row,
-        finalImageSize.height / layout.col
-      ),
-    [finalImageSize.width, finalImageSize.height, layout.row, layout.col]
-  );
-
   const LayoutGridBox = () => {
     const gridStyle = `grid ${getGridCols(
       layout.col
@@ -146,7 +138,6 @@ const CombineLayout = () => {
       finalImageSize.width,
       finalImageSize.height
     )} portrait:w-4/5 landscape:h-4/5`;
-    const aspectRatio = `aspect-${gridAspectRatio()}`;
     return (
       <div className={gridStyle}>
         {Array.from({ length: layout.row }).map((_, row) =>
@@ -156,7 +147,7 @@ const CombineLayout = () => {
               position={{ row, col }}
               content={selectedImgs[row][col]}
               onUpload={handleImageUpload(row, col)}
-              className={aspectRatio}
+              className={layout.aspectRatioClass}
             />
           ))
         )}
