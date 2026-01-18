@@ -13,8 +13,8 @@ const GridLayoutButton = ({
   return (
     <div
       onClick={onClickCallback}
-      className={`cursor-pointer p-1 rounded-sm hover:bg-amber-400/50 ${
-        active ? "bg-amber-400/80" : ""
+      className={`cursor-pointer p-1 rounded-sm hover:bg-star-400/50 ${
+        active ? "bg-star-400/80" : ""
       }`}
     >
       <div

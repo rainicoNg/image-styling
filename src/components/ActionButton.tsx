@@ -12,7 +12,7 @@ interface ActionButtonProps {
 const buttonStyle = {
   positive: "bg-green-600 text-green-50 hover:bg-green-700",
   negative: "bg-red-600 text-red-50 hover:bg-red-700",
-  default: "bg-amber-600 text-amber-50 hover:bg-amber-700",
+  default: "bg-star-600 text-star-50 hover:bg-star-700",
 };
 
 const ActionButton = ({
