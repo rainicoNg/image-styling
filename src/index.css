@@ -1,7 +1,15 @@
 @import "tailwindcss";
 @import "tailwindcss/utilities";
 
+@font-face {
+  font-family: "ByteBounce";
+  src: url("/fonts/bytebounce.medium.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 @theme {
+  --font-display: "ByteBounce", sans-serif;
   --color-star-50: #fff4e6;
   --color-star-400: #fcc765;
   --color-star-500: #dbb570;

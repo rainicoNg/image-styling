@@ -10,11 +10,17 @@ import { gridLayoutOptions } from "./constants";
 import Switch from "@/components/Switch";
 
 const CombineLayout = () => {
-  const [borderEnabled, setBorderEnabled] = useState(true);
+  const [borderEnabled, setBorderEnabled] = useState(false);
   const [borderWidthOption, setBorderWidthOption] = useState(0); // 0: thin (20px), 1: medium (30px), 2: thick (40px)
   const borderWidths = [20, 30, 40];
   const borderWidth = borderWidths[borderWidthOption];
   const [borderColor, setBorderColor] = useState("#475569");
+  const [dateEnabled, setDateEnabled] = useState(true);
+
+  const today = new Date();
+  const [printDate, setPrintDate] = useState<string>(
+    `${today.getFullYear().toString()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`,
+  );
   const [finalImageSize] = useState<{
     width: number;
     height: number;
@@ -28,7 +34,7 @@ const CombineLayout = () => {
     aspectRatioClass: string;
   }>(gridLayoutOptions[0]);
   const [selectedImgs, setSelectedImgs] = useState<string[][]>(
-    Array.from({ length: layout.row }, () => Array(layout.col).fill(""))
+    Array.from({ length: layout.row }, () => Array(layout.col).fill("")),
   );
 
   const handleImageUpload =
@@ -49,16 +55,16 @@ const CombineLayout = () => {
     (row?: number, col?: number) => {
       setSelectedImgs(
         Array.from({ length: row ?? layout.row }, () =>
-          Array(col ?? layout.col).fill("")
-        )
+          Array(col ?? layout.col).fill(""),
+        ),
       );
     },
-    [layout.row, layout.col]
+    [layout.row, layout.col],
   );
 
   const handleDownloadImg = async (
     width = finalImageSize.width,
-    height = finalImageSize.height
+    height = finalImageSize.height,
   ) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -83,7 +89,7 @@ const CombineLayout = () => {
       x: number,
       y: number,
       targetWidth: number,
-      targetHeight: number
+      targetHeight: number,
     ) => {
       const targetAspectRatio = targetWidth / targetHeight;
       const srcAspectRatio = img.width / img.height;
@@ -110,8 +116,20 @@ const CombineLayout = () => {
         x,
         y,
         targetWidth,
-        targetHeight
+        targetHeight,
       );
+    };
+
+    const drawPixelText = (text: string, x: number, y: number) => {
+      // Draw text directly to main canvas
+      ctx.font = `180px "ByteBounce", sans-serif`;
+      ctx.fillStyle = "#dbb570";
+      ctx.shadowColor = "#b08b46";
+      ctx.shadowOffsetX = 6;
+      ctx.shadowOffsetY = 4;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(text, x, y);
     };
 
     try {
@@ -125,7 +143,7 @@ const CombineLayout = () => {
                 (width / layout.col) * col,
                 (height / layout.row) * row,
                 width / layout.col,
-                height / layout.row
+                height / layout.row,
               );
             });
           }
@@ -165,8 +183,17 @@ const CombineLayout = () => {
           borderWidth / 2,
           borderWidth / 2,
           width - borderWidth,
-          height - borderWidth
+          height - borderWidth,
         );
+      }
+
+      // Draw date if enabled
+      if (dateEnabled) {
+        const padding = 24;
+        const dateXPosition =
+          width - (borderEnabled ? borderWidth : 0) - padding * 2;
+        const dateYPosition = height - (borderEnabled ? borderWidth : 0);
+        drawPixelText(printDate, dateXPosition, dateYPosition);
       }
 
       canvas.toBlob((blob) => {
@@ -174,7 +201,7 @@ const CombineLayout = () => {
           const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
-          link.download = `styled-img-${Date.now()}.png`;
+          link.download = `MYlife4cuts-${printDate.replace(/-/g, "")}-${today.getHours().toString().padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}${today.getSeconds().toString().padStart(2, "0")}.png`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -189,7 +216,7 @@ const CombineLayout = () => {
   const LayoutGridBox = () => {
     const gridStyle = `grid ${getGridCols(layout.col)} aspect-${getAspectRatio(
       finalImageSize.width,
-      finalImageSize.height
+      finalImageSize.height,
     )} h-full w-full`;
 
     return (
@@ -197,42 +224,36 @@ const CombineLayout = () => {
         <div className={gridStyle}>
           {Array.from({ length: layout.row }).map((_, row) =>
             Array.from({ length: layout.col }).map((_, col) => {
-              const width = !borderEnabled
-                ? {
-                    top: row === 0 ? 1 : 0.5,
-                    right: col === layout.col - 1 ? 1 : 0.5,
-                    bottom: row === layout.row - 1 ? 1 : 0.5,
-                    left: col === 0 ? 1 : 0.5,
-                  }
-                : {
-                    top: (row === 0 ? borderWidth : borderWidth / 2) / 10,
-                    right:
-                      (col === layout.col - 1 ? borderWidth : borderWidth / 2) /
-                      10,
-                    bottom:
-                      (row === layout.row - 1 ? borderWidth : borderWidth / 2) /
-                      10,
-                    left: (col === 0 ? borderWidth : borderWidth / 2) / 10,
-                  };
+              // Use fixed border width regardless of border state to maintain consistent grid height
+              const borderWidthPx = borderEnabled ? borderWidth / 10 : 2;
 
               return (
-                <LayoutGrid
-                  key={`${row}-${col}`}
-                  position={{ row, col }}
-                  content={selectedImgs[row][col]}
-                  onUpload={handleImageUpload(row, col)}
-                  className={`${layout.aspectRatioClass}`}
-                  style={{
-                    borderTop: width?.top,
-                    borderRight: width?.right,
-                    borderBottom: width?.bottom,
-                    borderLeft: width?.left,
-                    borderStyle: borderEnabled ? "solid" : "dashed",
-                    borderColor,
-                  }}
-                />
+                <div className={layout.aspectRatioClass}>
+                  <LayoutGrid
+                    key={`${row}-${col}`}
+                    position={{ row, col }}
+                    content={selectedImgs[row][col]}
+                    onUpload={handleImageUpload(row, col)}
+                    className="h-full"
+                    style={{
+                      borderTop: row === 0 ? borderWidthPx : borderWidthPx / 2,
+                      borderRight:
+                        col === layout.col - 1
+                          ? borderWidthPx
+                          : borderWidthPx / 2,
+                      borderBottom:
+                        row === layout.row - 1
+                          ? borderWidthPx
+                          : borderWidthPx / 2,
+                      borderLeft: col === 0 ? borderWidthPx : borderWidthPx / 2,
+                      borderStyle: borderEnabled ? "solid" : "dashed",
+                      borderColor: borderEnabled ? borderColor : "#cbd5e1",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
               );
-            })
+            }),
           )}
         </div>
       </div>
@@ -259,7 +280,7 @@ const CombineLayout = () => {
         </div>
       </div>
     ),
-    [gridLayoutOptions, setLayout, setSelectedImgs, layout.row, layout.col]
+    [gridLayoutOptions, setLayout, setSelectedImgs, layout.row, layout.col],
   );
 
   return (
@@ -269,42 +290,63 @@ const CombineLayout = () => {
         <div className="flex flex-col gap-4 items-center justify-center portrait:w-full landscape:h-full portrait:mb-4">
           <LayoutGridBox />
 
-          <div className="flex gap-2 items-center">
-            <div>Border</div>
-            <Switch
-              name="border-toggle"
-              checked={borderEnabled}
-              onChange={() => {
-                setBorderEnabled(!borderEnabled);
-              }}
-            >
-              <div className="flex flex-row gap-4 items-center">
-                <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2 items-center justify-center">
+              <div>Date</div>
+              <Switch
+                name="date-toggle"
+                checked={dateEnabled}
+                onChange={() => {
+                  setDateEnabled(!dateEnabled);
+                }}
+              >
+                <input
+                  type="date"
+                  value={printDate}
+                  onChange={(e) => setPrintDate(e.target.value)}
+                  className="cursor-pointer disabled:opacity-50"
+                  disabled={!dateEnabled}
+                />
+              </Switch>
+            </div>
+
+            <div className="flex gap-2 items-center">
+              <div>Border</div>
+              <Switch
+                name="border-toggle"
+                checked={borderEnabled}
+                onChange={() => {
+                  setBorderEnabled(!borderEnabled);
+                }}
+              >
+                <div className="flex flex-row gap-4 items-center">
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="color"
+                      id="colorPicker"
+                      value={borderColor}
+                      onChange={(e) => setBorderColor(e.target.value)}
+                      className="cursor-pointer w-[24px] h-[24px] rounded-full border-0 disabled:opacity-50"
+                      disabled={!borderEnabled}
+                    />
+                  </div>
                   <input
-                    type="color"
-                    id="colorPicker"
-                    value={borderColor}
-                    onChange={(e) => setBorderColor(e.target.value)}
-                    className="cursor-pointer w-[24px] h-[24px] rounded-full border-0 disabled:opacity-50"
+                    type="range"
+                    min="0"
+                    max="2"
+                    value={borderWidthOption}
                     disabled={!borderEnabled}
+                    onChange={(e) =>
+                      setBorderWidthOption(parseInt(e.target.value))
+                    }
+                    className="cursor-pointer w-24"
+                    style={{
+                      accentColor: borderColor,
+                    }}
                   />
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  value={borderWidthOption}
-                  disabled={!borderEnabled}
-                  onChange={(e) =>
-                    setBorderWidthOption(parseInt(e.target.value))
-                  }
-                  className="cursor-pointer w-24"
-                  style={{
-                    accentColor: borderColor,
-                  }}
-                />
-              </div>
-            </Switch>
+              </Switch>
+            </div>
           </div>
 
           <div className="flex flex-row flex-0 gap-4 items-center justify-between portrait:w-4/5 landscape:h-4/5">
