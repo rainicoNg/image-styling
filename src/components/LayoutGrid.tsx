@@ -1,5 +1,4 @@
 import { useRef, type ChangeEvent, type HTMLAttributes } from "react";
-import { BiSolidImageAdd } from "react-icons/bi";
 
 interface LayoutGridProps extends HTMLAttributes<HTMLDivElement> {
   position: { row: number; col: number };
@@ -19,17 +18,16 @@ const LayoutGrid = ({
     fileInputRefs.current?.click();
   };
 
-  const outlineStyle = "";
   return (
     <div
-      className={`cursor-pointer ${outlineStyle} hover:bg-stone-200 transition-colors duration-500 bg-stone-100 flex flex-col item-center justify-center ${className}`}
+      className={`cursor-pointer hover:bg-star-200 transition-colors duration-500 bg-star-100 flex flex-col item-center justify-center ${className}`}
       onClick={handleLayoutGridTap}
       style={style}
     >
       {content ? (
         <img src={content} className="w-full h-full object-cover" />
       ) : (
-        <BiSolidImageAdd className="w-full portrait:h-10 landscape:h-5 text-star-600 animate-pulse" />
+        <i className="hn hn-upload-alt-solid text-star-800 animate-pulse text-2xl md:text-4xl" />
       )}
       <input
         ref={(el) => {

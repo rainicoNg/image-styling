@@ -380,6 +380,11 @@
     "@eslint/core" "^0.17.0"
     levn "^0.4.1"
 
+"@hackernoon/pixel-icon-library@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@hackernoon/pixel-icon-library/-/pixel-icon-library-1.0.6.tgz#d0f62b45c6b4fd97ac80afbfc5d9e909a72ab532"
+  integrity sha512-WCkDFAJq6Xyp2rdVV7qcmx/vlixoScikEv2DpWUNtzWchDOyeTFrU3GTvd0jD/DGYJomLy2tKwkl13wycaO3Ng==
+
 "@humanfs/core@^0.19.1":
   version "0.19.1"
   resolved "https://registry.yarnpkg.com/@humanfs/core/-/core-0.19.1.tgz#17c55ca7d426733fe3c561906b8173c336b40a77"
@@ -1549,11 +1554,6 @@ react-dom@^19.1.0:
   integrity sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==
   dependencies:
     scheduler "^0.27.0"
-
-react-icons@^5.5.0:
-  version "5.5.0"
-  resolved "https://registry.yarnpkg.com/react-icons/-/react-icons-5.5.0.tgz#8aa25d3543ff84231685d3331164c00299cdfaf2"
-  integrity sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==
 
 react-refresh@^0.17.0:
   version "0.17.0"

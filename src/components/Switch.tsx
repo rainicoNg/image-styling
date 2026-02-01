@@ -6,9 +6,16 @@ interface SwitchProps {
   children?: ReactNode;
   checked?: boolean;
   onChange?: (checked: boolean) => void;
+  trackColor?: string;
 }
 
-const Switch = ({ name, children, checked = false, onChange }: SwitchProps) => {
+const Switch = ({
+  name,
+  children,
+  checked = false,
+  onChange,
+  trackColor,
+}: SwitchProps) => {
   const [isChecked, setIsChecked] = useState(checked);
 
   const handleChange = () => {
@@ -18,8 +25,8 @@ const Switch = ({ name, children, checked = false, onChange }: SwitchProps) => {
   };
 
   return (
-    <div className="flex flex-row items-center gap-2">
-      <div className="relative inline-block w-[50px] h-[24px]">
+    <div className="flex items-center gap-2 md:gap-3">
+      <div className="relative inline-block w-[36px] h-[16px]">
         <input
           name={name}
           id={name}
@@ -29,10 +36,19 @@ const Switch = ({ name, children, checked = false, onChange }: SwitchProps) => {
           onChange={handleChange}
         />
         <span
-          className={`rounded-full absolute cursor-pointer inset-0 before:absolute before:top-[2px] before:left-[2px] before:h-[20px] before:w-[20px] before:bg-white before:start-1 before:bottom-px before:rounded-full before:transition-all transition-all ${
-            isChecked ? "bg-star-500 before:translate-x-[26px]" : "bg-slate-600"
+          className={`absolute cursor-pointer inset-0 grid place-items-start items-center transition-all duration-150 ${
+            isChecked ? "" : "bg-stone-500"
           }`}
-        ></span>
+          style={{
+            backgroundColor: isChecked
+              ? (trackColor ?? "var(--color-ocean-700)")
+              : "",
+          }}
+        >
+          <i
+            className={`block w-4 h-3 bg-white shadow-none ${isChecked ? "translate-x-4.5" : "translate-x-0.5"} transition-transform duration-150`}
+          />
+        </span>
       </div>
       {children}
     </div>

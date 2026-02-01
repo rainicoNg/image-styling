@@ -1,26 +1,45 @@
-import { HiDocumentDownload } from "react-icons/hi";
-import { MdOutlineDelete } from "react-icons/md";
-
 import ActionButton from "@/components/ActionButton";
 import GridLayoutButton from "@/components/GridLayoutButton";
 import LayoutGrid from "@/components/LayoutGrid";
+import PreviewDialog from "@/components/PreviewDialog";
 import { getAspectRatio, getGridCols } from "@/utils/helper";
 import { type ChangeEvent, useCallback, useMemo, useState } from "react";
 import { gridLayoutOptions } from "./constants";
-import Switch from "@/components/Switch";
+import Panel, { FeatureType } from "@/components/Panel";
 
+const borderWidthOptions = [20, 30, 40] as const;
+
+interface Features {
+  date: {
+    enabled: boolean;
+    value: string;
+  };
+  border: {
+    enabled: boolean;
+    width?: number;
+    color?: string;
+  };
+}
 const CombineLayout = () => {
-  const [borderEnabled, setBorderEnabled] = useState(false);
-  const [borderWidthOption, setBorderWidthOption] = useState(0); // 0: thin (20px), 1: medium (30px), 2: thick (40px)
-  const borderWidths = [20, 30, 40];
-  const borderWidth = borderWidths[borderWidthOption];
-  const [borderColor, setBorderColor] = useState("#475569");
-  const [dateEnabled, setDateEnabled] = useState(true);
-
   const today = new Date();
-  const [printDate, setPrintDate] = useState<string>(
-    `${today.getFullYear().toString()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`,
+
+  const [featureEnabled, setFeatureEnabled] = useState<Features>({
+    date: {
+      enabled: true,
+      value: `${today.getFullYear().toString()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`,
+    },
+    border: {
+      enabled: false,
+      color: "#2a548f",
+      width: borderWidthOptions[0],
+    },
+  });
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | undefined>(
+    undefined,
   );
+
   const [finalImageSize] = useState<{
     width: number;
     height: number;
@@ -62,23 +81,21 @@ const CombineLayout = () => {
     [layout.row, layout.col],
   );
 
-  const handleDownloadImg = async (
-    width = finalImageSize.width,
-    height = finalImageSize.height,
-  ) => {
+  async function renderCanvas(width: number, height: number) {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-
-    if (!ctx) return;
+    if (!ctx) return null;
     canvas.width = width;
     canvas.height = height;
 
+    // Fill background black
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, width, height);
 
     const loadImg = (src: string): Promise<HTMLImageElement> =>
       new Promise((resolve, reject) => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
         img.onerror = reject;
         img.src = src;
@@ -121,10 +138,11 @@ const CombineLayout = () => {
     };
 
     const drawPixelText = (text: string, x: number, y: number) => {
-      // Draw text directly to main canvas
       ctx.font = `180px "ByteBounce", sans-serif`;
-      ctx.fillStyle = "#dbb570";
-      ctx.shadowColor = "#b08b46";
+      ctx.fillStyle = featureEnabled.border.color || "#dbb570";
+      ctx.shadowColor = featureEnabled.border.color
+        ? `${featureEnabled.border.color}80`
+        : "#b08b46";
       ctx.shadowOffsetX = 6;
       ctx.shadowOffsetY = 4;
       ctx.textAlign = "right";
@@ -132,11 +150,24 @@ const CombineLayout = () => {
       ctx.fillText(text, x, y);
     };
 
+    const shadeHex = (hex: string, percent: number) => {
+      const h = hex.replace("#", "");
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + percent;
+      let g = ((num >> 8) & 0x00ff) + percent;
+      let b = (num & 0x0000ff) + percent;
+      r = Math.max(Math.min(255, r), 0);
+      g = Math.max(Math.min(255, g), 0);
+      b = Math.max(Math.min(255, b), 0);
+      return `rgb(${r},${g},${b})`;
+    };
+
     try {
       for (let row = 0; row < layout.row; row++) {
         for (let col = 0; col < layout.col; col++) {
           const imgSrc = selectedImgs[row][col];
           if (imgSrc) {
+            // eslint-disable-next-line no-await-in-loop
             await loadImg(imgSrc).then((img) => {
               cropAndDrawImage(
                 img,
@@ -150,67 +181,101 @@ const CombineLayout = () => {
         }
       }
 
-      // Draw borders if enabled
-      if (borderEnabled) {
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = borderWidth;
-
+      if (featureEnabled.border.enabled) {
         const cellWidth = width / layout.col;
         const cellHeight = height / layout.row;
 
-        // Draw vertical lines (borders between columns)
-        for (let col = 1; col < layout.col; col++) {
-          const x = cellWidth * col;
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, height);
-          ctx.stroke();
+        const fill = (
+          colStart: number,
+          colEnd: number,
+          rowStart: number,
+          rowEnd: number,
+        ) => {
+          for (let i = colStart; i < colEnd; i += 10) {
+            for (let j = rowStart; j < rowEnd; j += 10) {
+              const shade = Math.floor(Math.random() * 100) - 50;
+              ctx.fillStyle = shadeHex(featureEnabled.border.color!, shade);
+              ctx.fillRect(i, j, 10, 10);
+            }
+          }
+        };
+
+        // draw vertical inner borders as squares
+        for (let c = 1; c < layout.col; c++) {
+          const x = Math.round(
+            cellWidth * c - featureEnabled.border.width! / 2,
+          );
+          fill(x, x + featureEnabled.border.width!, 0, height);
         }
 
-        // Draw horizontal lines (borders between rows)
-        for (let row = 1; row < layout.row; row++) {
-          const y = cellHeight * row;
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(width, y);
-          ctx.stroke();
+        // draw horizontal inner borders as tiled squares
+        for (let r = 1; r < layout.row; r++) {
+          const y = Math.round(
+            cellHeight * r - featureEnabled.border.width! / 2,
+          );
+          fill(0, width, y, y + featureEnabled.border.width!);
         }
 
-        // Draw outer border
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = borderWidth;
-        ctx.strokeRect(
-          borderWidth / 2,
-          borderWidth / 2,
-          width - borderWidth,
-          height - borderWidth,
-        );
+        // outer border: top/bottom/left/right tiled
+        fill(0, width, 0, featureEnabled.border.width!);
+        fill(0, width, height - featureEnabled.border.width!, height);
+        fill(0, featureEnabled.border.width!, 0, height);
+        fill(width - featureEnabled.border.width!, width, 0, height);
       }
 
-      // Draw date if enabled
-      if (dateEnabled) {
+      if (featureEnabled.date.enabled) {
         const padding = 24;
         const dateXPosition =
-          width - (borderEnabled ? borderWidth : 0) - padding * 2;
-        const dateYPosition = height - (borderEnabled ? borderWidth : 0);
-        drawPixelText(printDate, dateXPosition, dateYPosition);
+          width -
+          (featureEnabled.border.enabled ? featureEnabled.border.width! : 0) -
+          padding * 2;
+        const dateYPosition =
+          height -
+          (featureEnabled.border.enabled ? featureEnabled.border.width! : 0);
+        drawPixelText(featureEnabled.date.value, dateXPosition, dateYPosition);
       }
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `MYlife4cuts-${printDate.replace(/-/g, "")}-${today.getHours().toString().padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}${today.getSeconds().toString().padStart(2, "0")}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }
-      }, "image/png");
+      return canvas;
     } catch (error) {
-      console.error("logs err", error);
+      return canvas;
     }
+  }
+
+  const handlePreview = async () => {
+    const canvas = await renderCanvas(
+      finalImageSize.width,
+      finalImageSize.height,
+    );
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    setPreviewDataUrl(url);
+    setPreviewOpen(true);
+  };
+
+  const handleDownloadImg = async (
+    width = finalImageSize.width,
+    height = finalImageSize.height,
+  ) => {
+    // Use renderCanvas to draw and then download
+    const canvas = await renderCanvas(width, height);
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `MYlife4cuts-${featureEnabled.date.value.replace(/-/g, "")}-${today.getHours().toString().padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}${today.getSeconds().toString().padStart(2, "0")}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    }, "image/png");
+  };
+
+  const handleDialogDownload = async () => {
+    await handleDownloadImg();
+    setPreviewOpen(false);
   };
 
   const LayoutGridBox = () => {
@@ -225,7 +290,9 @@ const CombineLayout = () => {
           {Array.from({ length: layout.row }).map((_, row) =>
             Array.from({ length: layout.col }).map((_, col) => {
               // Use fixed border width regardless of border state to maintain consistent grid height
-              const borderWidthPx = borderEnabled ? borderWidth / 10 : 2;
+              const borderWidthPx = featureEnabled.border.enabled
+                ? featureEnabled.border.width! / 10
+                : 2;
 
               return (
                 <div className={layout.aspectRatioClass}>
@@ -246,8 +313,12 @@ const CombineLayout = () => {
                           ? borderWidthPx
                           : borderWidthPx / 2,
                       borderLeft: col === 0 ? borderWidthPx : borderWidthPx / 2,
-                      borderStyle: borderEnabled ? "solid" : "dashed",
-                      borderColor: borderEnabled ? borderColor : "#cbd5e1",
+                      borderStyle: featureEnabled.border.enabled
+                        ? "solid"
+                        : "dashed",
+                      borderColor: featureEnabled.border.enabled
+                        ? featureEnabled.border.color
+                        : "#cbd5e1",
                       boxSizing: "border-box",
                     }}
                   />
@@ -263,7 +334,7 @@ const CombineLayout = () => {
   const GridLayoutPanel = useMemo(
     () => (
       <div className="flex flex-col h-full landscape:items-center gap-2">
-        <div className="landscape:text-xs">Layout Template</div>
+        <div className="landscape:text-md">Layout</div>
         <div className="flex portrait:flex-row portrait:overflow-x-auto landscape:flex-col landscape:overflow-y-auto landscape:h-full landscape:w-full landscape:items-center landscape:gap-4 portrait:gap-8 items-end">
           {gridLayoutOptions.map((opt) => (
             <GridLayoutButton
@@ -290,86 +361,129 @@ const CombineLayout = () => {
         <div className="flex flex-col gap-4 items-center justify-center portrait:w-full landscape:h-full portrait:mb-4">
           <LayoutGridBox />
 
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-2 items-center justify-center">
-              <div>Date</div>
-              <Switch
-                name="date-toggle"
-                checked={dateEnabled}
-                onChange={() => {
-                  setDateEnabled(!dateEnabled);
-                }}
-              >
-                <input
-                  type="date"
-                  value={printDate}
-                  onChange={(e) => setPrintDate(e.target.value)}
-                  className="cursor-pointer disabled:opacity-50"
-                  disabled={!dateEnabled}
-                />
-              </Switch>
-            </div>
-
-            <div className="flex gap-2 items-center">
-              <div>Border</div>
-              <Switch
-                name="border-toggle"
-                checked={borderEnabled}
-                onChange={() => {
-                  setBorderEnabled(!borderEnabled);
-                }}
-              >
-                <div className="flex flex-row gap-4 items-center">
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="color"
-                      id="colorPicker"
-                      value={borderColor}
-                      onChange={(e) => setBorderColor(e.target.value)}
-                      className="cursor-pointer w-[24px] h-[24px] rounded-full border-0 disabled:opacity-50"
-                      disabled={!borderEnabled}
-                    />
-                  </div>
+          <Panel
+            features={[
+              {
+                name: "date-toggle",
+                type: FeatureType.SWITCH,
+                label: "Date",
+                value: featureEnabled.date.enabled,
+                onChange: (v: boolean) =>
+                  setFeatureEnabled({
+                    ...featureEnabled,
+                    date: {
+                      ...featureEnabled.date,
+                      enabled: v,
+                    },
+                  }),
+                child: (
                   <input
-                    type="range"
-                    min="0"
-                    max="2"
-                    value={borderWidthOption}
-                    disabled={!borderEnabled}
+                    type="date"
+                    value={featureEnabled.date.value}
                     onChange={(e) =>
-                      setBorderWidthOption(parseInt(e.target.value))
+                      setFeatureEnabled({
+                        ...featureEnabled,
+                        date: {
+                          ...featureEnabled.date,
+                          value: e.target.value,
+                        },
+                      })
                     }
-                    className="cursor-pointer w-24"
+                    className="cursor-pointer disabled:opacity-50"
+                    disabled={!featureEnabled.date.enabled}
                     style={{
-                      accentColor: borderColor,
+                      color: featureEnabled.border.enabled
+                        ? featureEnabled.border.color
+                        : undefined,
                     }}
                   />
-                </div>
-              </Switch>
-            </div>
-          </div>
+                ),
+              },
+              {
+                name: "border-toggle",
+                type: FeatureType.SWITCH,
+                label: "Border",
+                value: featureEnabled.border.enabled,
+                onChange: (v: boolean) =>
+                  setFeatureEnabled({
+                    ...featureEnabled,
+                    border: {
+                      ...featureEnabled.border,
+                      enabled: v,
+                    },
+                  }),
+                child: (
+                  <div className="flex flex-row gap-4 items-center">
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="color"
+                        id="colorPicker"
+                        value={featureEnabled.border.color}
+                        onChange={(e) =>
+                          setFeatureEnabled({
+                            ...featureEnabled,
+                            border: {
+                              ...featureEnabled.border,
+                              color: e.target.value,
+                            },
+                          })
+                        }
+                        className="cursor-pointer w-[20px] h-[24px] disabled:opacity-50"
+                        disabled={!featureEnabled.border.enabled}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      value={borderWidthOptions.findIndex(
+                        (opt) => opt === (featureEnabled.border.width ?? 20),
+                      )}
+                      disabled={!featureEnabled.border.enabled}
+                      onChange={(e) =>
+                        setFeatureEnabled({
+                          ...featureEnabled,
+                          border: {
+                            ...featureEnabled.border,
+                            width: borderWidthOptions[parseInt(e.target.value)],
+                          },
+                        })
+                      }
+                      className="cursor-pointer w-20 md:w-24"
+                    />
+                  </div>
+                ),
+              },
+            ]}
+          />
 
-          <div className="flex flex-row flex-0 gap-4 items-center justify-between portrait:w-4/5 landscape:h-4/5">
+          <div className="flex flex-row flex-0 gap-4 items-center justify-between portrait:w-4/5 landscape:h-4/5 md:mx-0.5 w-full">
             <ActionButton
-              variant="negative"
+              variant="secondary"
               disabled={!selectedImgs.flat().some((img) => img)}
               onClick={() => {
                 handleResetSelectedImgs();
               }}
               label="Reset"
-              startAddon={<MdOutlineDelete />}
+              startAddon={<i className="hn hn-trash-alt block text-xs" />}
             />
             <ActionButton
               disabled={!selectedImgs.flat().some((img) => img)}
               onClick={async () => {
-                await handleDownloadImg();
+                await handlePreview();
               }}
-              label="Download"
-              startAddon={<HiDocumentDownload />}
+              label="Preview"
+              startAddon={<i className="hn hn-image block text-xs" />}
             />
           </div>
         </div>
         {GridLayoutPanel}
+        <PreviewDialog
+          open={previewOpen}
+          imageDataUrl={previewDataUrl}
+          onClose={() => setPreviewOpen(false)}
+          onDownload={handleDialogDownload}
+        />
       </div>
     </div>
   );

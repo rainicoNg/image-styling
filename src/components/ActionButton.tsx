@@ -5,14 +5,15 @@ interface ActionButtonProps {
   label: string;
   disabled?: boolean;
   startAddon?: JSX.Element;
-  variant?: "positive" | "negative" | "default";
+  variant?: "secondary" | "primary";
   className?: string;
 }
 
 const buttonStyle = {
-  positive: "bg-green-600 text-green-50 hover:bg-green-700",
-  negative: "bg-red-600 text-red-50 hover:bg-red-700",
-  default: "bg-star-600 text-star-50 hover:bg-star-700",
+  secondary:
+    "bg-transparent text-ocean-700 border-2 border-ocean-700 hover:not-disabled:bg-star-200",
+  primary:
+    "bg-star-300 text-star-700 border-2 border-star-800 hover:not-disabled:bg-star-200",
 };
 
 const ActionButton = ({
@@ -20,14 +21,14 @@ const ActionButton = ({
   label,
   disabled,
   startAddon,
-  variant = "default",
+  variant = "primary",
   className,
 }: ActionButtonProps) => {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`${buttonStyle[variant]} disabled:bg-stone-300 flex flex-row gap-1 items-center ${className}`}
+      className={`${buttonStyle[variant]} disabled:bg-stone-200 disabled:border-stone-500 disabled:text-stone-500 flex flex-row gap-1 items-center justify-center ${className ?? ""}`}
     >
       {startAddon && <span>{startAddon}</span>}
       {label}
