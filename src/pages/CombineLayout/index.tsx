@@ -268,14 +268,26 @@ const CombineLayout = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        // Delay revoke slightly to avoid mobile browsers invalidating the resource too early
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
     }, "image/png");
   };
 
   const handleDialogDownload = async () => {
-    await handleDownloadImg();
-    setPreviewOpen(false);
+    if (previewDataUrl) {
+      const link = document.createElement("a");
+      link.href = previewDataUrl;
+      link.download = `MYlife4cuts-${featureEnabled.date.value.replace(/-/g, "")}-${today.getHours().toString().padStart(2, "0")}${today.getMinutes().toString().padStart(2, "0")}${today.getSeconds().toString().padStart(2, "0")}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      // keep previewDataUrl intact; close after a short delay to allow mobile download to complete
+      setTimeout(() => setPreviewOpen(false), 300);
+    } else {
+      await handleDownloadImg();
+      setPreviewOpen(false);
+    }
   };
 
   const LayoutGridBox = () => {
