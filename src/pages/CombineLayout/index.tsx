@@ -137,19 +137,6 @@ const CombineLayout = () => {
       );
     };
 
-    const drawPixelText = (text: string, x: number, y: number) => {
-      ctx.font = `180px "ByteBounce", sans-serif`;
-      ctx.fillStyle = featureEnabled.border.color || "#dbb570";
-      ctx.shadowColor = featureEnabled.border.color
-        ? `${featureEnabled.border.color}80`
-        : "#b08b46";
-      ctx.shadowOffsetX = 6;
-      ctx.shadowOffsetY = 4;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(text, x, y);
-    };
-
     const shadeHex = (hex: string, percent: number) => {
       const h = hex.replace("#", "");
       const num = parseInt(h, 16);
@@ -160,6 +147,31 @@ const CombineLayout = () => {
       g = Math.max(Math.min(255, g), 0);
       b = Math.max(Math.min(255, b), 0);
       return `rgb(${r},${g},${b})`;
+    };
+
+    const invertHex = (hex: string, percent = 0) => {
+      const h = hex.replace("#", "");
+      const num = parseInt(h, 16);
+      let r = 255 - (num >> 16) + percent;
+      let g = 255 - ((num >> 8) & 0x00ff) + percent;
+      let b = 255 - (num & 0x0000ff) + percent;
+      r = Math.max(Math.min(255, r), 0);
+      g = Math.max(Math.min(255, g), 0);
+      b = Math.max(Math.min(255, b), 0);
+      return `rgb(${r},${g},${b})`;
+    };
+
+    const drawPixelText = (text: string, x: number, y: number) => {
+      ctx.font = `180px "ByteBounce", sans-serif`;
+      ctx.fillStyle = featureEnabled.border.color || "#dbb570";
+      ctx.shadowColor = featureEnabled.border.color
+        ? invertHex(featureEnabled.border.color)
+        : "#b08b46";
+      ctx.shadowOffsetX = 8;
+      ctx.shadowOffsetY = 6;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(text, x, y);
     };
 
     try {
@@ -228,10 +240,11 @@ const CombineLayout = () => {
         const dateXPosition =
           width -
           (featureEnabled.border.enabled ? featureEnabled.border.width! : 0) -
-          padding * 2;
+          padding;
         const dateYPosition =
           height -
-          (featureEnabled.border.enabled ? featureEnabled.border.width! : 0);
+          (featureEnabled.border.enabled ? featureEnabled.border.width! : 0) -
+          padding;
         drawPixelText(featureEnabled.date.value, dateXPosition, dateYPosition);
       }
 
@@ -268,8 +281,6 @@ const CombineLayout = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        // Delay revoke slightly to avoid mobile browsers invalidating the resource too early
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
     }, "image/png");
   };
@@ -440,7 +451,7 @@ const CombineLayout = () => {
                             },
                           })
                         }
-                        className="cursor-pointer w-[20px] h-[24px] disabled:opacity-50"
+                        className="cursor-pointer w-[20px] h-[20px] disabled:opacity-50"
                         disabled={!featureEnabled.border.enabled}
                       />
                     </div>
